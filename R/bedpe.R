@@ -60,9 +60,19 @@ setMethod("export", c("GInteractions", "BEDPEFile"),
               name <- rep(NA, length(object))
             df$name <- name
             df$score <- score
-            df$strand1 <- strand(object_anchors$first)
-            df$strand2 <- strand(object_anchors$second)
-            df <- cbind(df, mcols(object))
+            if (ignore.strand) {
+                strand1 <- NA # strand cannot be null in bedpe
+                strand2 <- NA
+            } else {
+                strand1 <- strand(object_anchors$first)
+                strand2 <- strand(object_anchors$second)
+                strand1[strand1 == "*"] <- NA
+                strand2[strand2 == "*"] <- NA
+            }
+            df$strand1 = strand1
+            df$strand2 = strand2
+            mcol_names = setdiff(names(mcols(object)), c("name", "score"))
+            df <- cbind(df, mcols(object)[,mcol_names])
             scipen <- getOption("scipen")
             options(scipen = 100) # prevent use of scientific notation
             on.exit(options(scipen = scipen))
@@ -80,8 +90,8 @@ setGeneric("import.bedpe", function(con, ...) standardGeneric("import.bedpe"))
 
 setMethod("import", "BEDPEFile",
           function(con, format, text,
-                   genome = NA, colnames = NULL,
-                   seqinfo = NULL, extraCols = character())
+                   genome = NA, seqinfo = NULL, 
+                   extraCols = character())
           {
             if (!missing(format))
               checkArgFormat(con, format)
@@ -95,58 +105,19 @@ setMethod("import", "BEDPEFile",
             bedpeNames <- c("chrom1", "start1", "end1",
                             "chrom2", "start2", "end2",
                             "name", "score", "strand1", "strand2")
-            bedpeClasses <- c("character", "integr", "integer",
+            bedpeClasses <- c("character", "integer", "integer",
                             "character", "integer", "integer",
                             "character", "numeric", "character", "character")
-            normArgColnames <- function(validNames) {
-              if (is.null(colnames))
-                colnames <- validNames
-              else {
-                colnames <- unique(c(head(bedNames, 3), as.character(colnames)))
-                missingCols <- setdiff(colnames, validNames)
-                if (length(missingCols))
-                  stop("Requested column(s) ",
-                       paste("'", missingCols, "'", sep = "", collapse = ", "),
-                       " are not valid columns or were not found in the file")
-              }
-              colnames
+            if (length(extraCols) > 0) {
+                bedpeNames = c(bedpeNames, names(extraCols))
+                bedpeClasses = c(bedpeClasses, unname(extraCols))
             }
-            ## read a single line to get ncols up-front,
-            ## and thus specify all col classes
-            ## FIXME: reading in 'as.is' to save memory,
-            line <- readLines(con, 1, warn=FALSE)
-            ## UCSC seems to use '#' at beginning to indicate comment.
-            while(length(line) &&
-                  (!nzchar(line) || substring(line, 1, 1) == "#"))
-            {
-              line <- readLines(con, 1, warn=FALSE)
-            }
-            if (length(line)) {
-              `tail<-` <- function(x, n, value)
-                if (n != 0) c(head(x, -n), value) else x
-              pushBack(line, con)
-              colsInFile <- seq_len(length(strsplit(line, "[\t ]")[[1]]))
-              presentNames <- bedNames[colsInFile]
-              tail(presentNames, length(extraCols)) <- names(extraCols)
-              bedNames <- presentNames
-              presentClasses <- bedClasses[colsInFile]
-              tail(presentClasses, length(extraCols)) <- unname(extraCols)
-              colnames <- normArgColnames(presentNames)
-              bedClasses <- ifelse(presentNames %in% colnames,
-                                   presentClasses, "NULL")
-              bed <- DataFrame(read.table(con, colClasses = bedClasses,
-                                          as.is = TRUE, na.strings = ".",
-                                          comment.char = ""))
-            } else {
-              if (is.null(colnames))
-                colnames <- character()
-              else colnames <- normArgColnames(bedNames)
-              keepCols <- bedNames %in% colnames
-              bed <- DataFrame(as.list(sapply(bedClasses[keepCols], vector)))
-            }
-            colnames(bed) <- bedNames[bedNames %in% colnames]
-            bed <- bed[substring(bed$chrom, 1, 1) != "#",]
-            # manually handle genome/seqinfo since GenomicData contsructor unavailable
+            bedpe <- DataFrame(read.table(con, colClasses = bedpeClasses,
+                                        as.is = TRUE, na.strings = "."))
+            colnames(bedpe)[1:length(bedpeNames)] <- bedpeNames # prevent recycling
+            # manually handle genome/seqinfo/strand since GenomicData contsructor unavailable
+            bedpe$strand1[is.na(bedpe$strand1)] <- "*"
+            bedpe$strand2[is.na(bedpe$strand2)] <- "*"
             if (!is.null(seqinfo)) {
                 if (is.na(genome))
                     genome <- singleGenome(genome(seqinfo))
@@ -155,10 +126,11 @@ setMethod("import", "BEDPEFile",
             }
             if (is.null(seqinfo) && !is.na(genome))
                 seqinfo <- seqinfoForGenome(genome)
-            GInteractions(
-              GenomicRanges(bed$chrom1, IRanges(bed$start1, bed$end1), bed$strand1),
-              GenomicRanges(bed$chrom2, IRanges(bed$start2, bed$end2), bed$strand2),
-              bed[-(c(1:6, 9:10))])
-            # TODO Add seqinfo for GInteractions
+            out = GInteractions(
+              GRanges(bedpe$chrom1, IRanges(bedpe$start1, bedpe$end1), bedpe$strand1, seqinfo=seqinfo),
+              GRanges(bedpe$chrom2, IRanges(bedpe$start2, bedpe$end2), bedpe$strand2, seqinfo=seqinfo)
+            )
+            mcols(out) = bedpe[-(c(1:6, 9:10))]
+            out
           })
 
