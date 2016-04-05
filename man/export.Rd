@@ -106,7 +106,7 @@ import(con, format, text, ...)
       graph. For large data (the typical case), \code{BigWig} is
       preferred.
     }
-    
+
     \item{\acronym{\link[=WIGFile]{WIG}}}{The Wiggle format is meant for
       storing dense numerical data, such as window-based GC and
       conservation scores. The data is displayed in UCSC as a bar or
