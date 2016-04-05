@@ -515,6 +515,25 @@ setMethod("colClasses", "BEDPEFile", function(x) {
 
 ### TODO: export
 
+setMethod("export", c("ANY", "BEDPEFile"),
+          function(object, con, format, ...)
+          {
+            if (!missing(format))
+              checkArgFormat(con, format)
+            cl <- class(object)
+            track <- try(as(object, "Pairs"), silent = TRUE)
+            if (class(track) == "try-error") {
+              stop("cannot export object of class '", cl, "': ", track)
+            }
+            export(track, con, ...)
+          })
+
+setMethod("export", c("Pairs", "BEDPEFile"),
+          function(object, con, format, ...)
+          {
+            ...
+          })
+
 ### - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 ### Coercion
 ###
