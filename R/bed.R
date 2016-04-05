@@ -499,8 +499,9 @@ setMethod("import", "BEDPEFile",
               gr <- callNextMethod()
               df <- mcols(gr)
               mcols(gr) <- NULL
+              df$strand2[is.na(df$strand2)] = "*"
               gr2 <- with(df, GRanges(chrom2, IRanges(start2+1L, end2),
-                                      strand2))
+                                      strand2, seqinfo=seqinfo(gr)))
               df <- subset(df, select=-(chrom2:end2))
               df$strand2 <- NULL
               Pairs(gr, gr2, df)
@@ -529,7 +530,6 @@ setMethod("export", c("ANY", "BEDPEFile"),
 setMethod("export", c("Pairs", "BEDPEFile"),
           function(object, con, format, append = FALSE, ignore.strand = FALSE)
           {
-            message("inside GI export method")
             if (!missing(format))
               checkArgFormat(con, format)
             df <- data.frame(
@@ -540,14 +540,14 @@ setMethod("export", c("Pairs", "BEDPEFile"),
                              start(second(object)) - 1L,
                              end(second(object))
                             )
-            score <- object$score
+            score <- mcols(object)$score
             if (!is.null(score)) {
               if (!is.numeric(score) || any(is.na(score)))
                 stop("Scores must be non-NA numeric values")
             } else {
                 score <- 0
             }
-            name <- object$name
+            name <- mcols(object)$name
             if (is.null(name))
               name <- names(object)
             if (is.null(name))
@@ -572,10 +572,10 @@ setMethod("export", c("Pairs", "BEDPEFile"),
             on.exit(options(scipen = scipen))
             file <- con
             con <- connection(con, if (append) "a" else "w")
-            on.exit(release(con))
             write.table(df, con, sep = "\t", col.names = FALSE,
                         row.names = FALSE, quote = FALSE, na = ".")
             release(con)
+            invisible(file)
           })
 
 ### - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -160,22 +160,22 @@ export.bedGraph(object, con, ...)
 
 \details{
   The BED format is a tab-separated table of intervals, with annotations
-  like name, score and even sub-intervals for representing alignments
-  and gene models. Official (UCSC) child formats currently include BED15
-  (adding a number matrix for e.g. expression data across multiple
-  samples) and BEDGraph (a compressed means of storing a single score
-  variable, e.g. coverage; overlapping features are not allowed). Many
-  tools and organizations have extended the BED format with additional
-  columns for particular use cases. These are not yet supported by
-  rtracklayer, but a mechanism will be added soon. The advantage of BED
-  is its balance between simplicity and expressiveness. It is also
-  relatively scalable, because only the first three columns (chrom,
+  like name, score and even sub-intervals for representing alignments and
+  gene models. Official (UCSC) child formats currently include BED15
+  (adding a number matrix for e.g. expression data across multiple samples)
+  and BEDGraph (a compressed means of storing a single score variable, e.g.
+  coverage; overlapping features are not allowed). Many tools and
+  organizations have extended the BED format with additional columns for
+  particular use cases. Currently only BEDPE is supported by rtracklayer;
+  others are not yet supported but a mechanism will be added soon. The
+  advantage of BED is its balance between simplicity and expressiveness. It
+  is also relatively scalable, because only the first three columns (chrom,
   start and end) are required. Thus, BED is best suited for representing
   simple features. For specialized cases, one is usually better off with
   another format. For example, genome-scale vectors belong in
   \link[=BigWigFile]{BigWig}, alignments from high-throughput sequencing
-  belong in \link[Rsamtools:BamFile]{BAM}, and gene models are more
-  richly expressed in \link[=GFFFile]{GFF}.
+  belong in \link[Rsamtools:BamFile]{BAM}, and gene models are more richly
+  expressed in \link[=GFFFile]{GFF}.
 
   The following is the mapping of BED elements to a \code{GRanges} or
   \code{RangedData} object. NA values are allowed only where indicated.
@@ -219,6 +219,15 @@ export.bedGraph(object, con, ...)
       substituted. NA values become -10000 in the file.
     }
   }
+
+  The columns and column order are slightly different for a BEDPE file:
+  \describe{
+    \item{chrom1, start1, end1}{The first set of ranges.}
+    \item{chrom2, start2, end2}{The second set of ranges.}
+    \item{name, score}{As in a BED file.}
+    \item{strand1, strand2}{Strand information for each set of ranges.}
+    \item{additional fields}{Any number of additional, user-defined fields.}
+  }
 }
 
 \section{BEDX+Y formats}{
@@ -243,6 +252,7 @@ export.bedGraph(object, con, ...)
 
 \references{
   \url{http://genome.ucsc.edu/goldenPath/help/customTrack.html}
+  \url{http://bedtools.readthedocs.org/en/latest/content/general-usage.html}
 }
 
 \examples{
