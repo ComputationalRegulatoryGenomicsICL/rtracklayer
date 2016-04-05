@@ -499,7 +499,7 @@ setMethod("import", "BEDPEFile",
               gr <- callNextMethod()
               df <- mcols(gr)
               mcols(gr) <- NULL
-              df$strand2[is.na(df$strand2)] = "*"
+              df$strand2[is.na(df$strand2)] <- "*"
               gr2 <- with(df, GRanges(chrom2, IRanges(start2+1L, end2),
                                       strand2, seqinfo=seqinfo(gr)))
               df <- subset(df, select=-(chrom2:end2))
@@ -563,9 +563,9 @@ setMethod("export", c("Pairs", "BEDPEFile"),
                 strand1[strand1 == "*"] <- NA
                 strand2[strand2 == "*"] <- NA
             }
-            df$strand1 = strand1
-            df$strand2 = strand2
-            mcol_names = setdiff(names(mcols(object)), c("name", "score"))
+            df$strand1 <- strand1
+            df$strand2 <- strand2
+            mcol_names <- setdiff(names(mcols(object)), c("name", "score"))
             df <- cbind(df, mcols(object)[,mcol_names])
             scipen <- getOption("scipen")
             options(scipen = 100) # prevent use of scientific notation
