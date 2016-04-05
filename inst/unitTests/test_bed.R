@@ -305,4 +305,11 @@ test_bedpe <- function() {
     bedpe <- import(path)
 
     checkIdentical(pairs, bedpe)
+
+    # test export
+    test_bedpe_out <- gsub("\\\\", "/", file.path(tempdir(), "test.bedpe"))
+    on.exit(unlink(test_bedpe_out))
+    export(bedpe, test_bedpe_out)
+    test <- import(test_bedpe_out)
+    checkIdentical(bedpe, test)
 }
